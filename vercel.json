@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/kaydet",
+      "destination": "https://n8n.kariyerpusulasi.xyz/webhook/kariyer-chat"
+    }
+  ]
+}
