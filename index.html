@@ -203,8 +203,8 @@
             <ul>
                 <li><a href="#home">Ana Sayfa</a></li>
                 <li><a href="#uygulama">Uygulama</a></li>
-                <li><a href="#kullanim">Kullanım</a></li>
-                <li><a href="#gelistiriciler">Destek - İletişim</a></li>
+                <li><a href="#kullanim">Nasıl Kullanılır?</a></li>
+                <li><a href="#iletisim">Destek - İletişim</a></li>
 
                 <!-- Giriş YOK durumu -->
                 <li id="nav-login-btn" class="nav-auth-item">
@@ -244,9 +244,9 @@
     <div class="mobile-nav-overlay" id="mobile-overlay"></div>
     <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobil menü">
         <a href="#home"            onclick="closeMenu()">Ana Sayfa</a>
-        <a href="#uygulama"       onclick="closeMenu()">Uygulama</a>
+        <a href="#uygulama"       onclick="closeMenu()">Nedir?</a>
         <a href="#kullanim"       onclick="closeMenu()">Kullanım</a>
-        <a href="#gelistiriciler" onclick="closeMenu()">Geliştiriciler</a>
+        <a href="#iletisim" onclick="closeMenu()">Destek - İletişim</a>
         <div class="mobile-menu-divider"></div>
         <!-- Giriş yok -->
         <button class="mobile-nav-btn" id="mob-login" onclick="closeMenu(); window.location.href='login.html';">Giriş Yap</button>
@@ -372,28 +372,20 @@
         </div>
     </section>
 
-    <section id="gelistiriciler" class="content-section">
+    <section id="iletisim" class="content-section">
         <div class="container">
-            <h2 class="section-title">Geliştirici Ekibimiz</h2>
-            <div class="developers-grid">
-                <div class="glass-card dev-card">
-                    <div class="dev-icon">📱</div>
-                    <h2>Burak Yazıcı</h2>
-                    <h3 class="gradient-text">Uygulama Geliştiricisi</h3>
-                    <p>Burak, Kariyer Pusulası'nın teknik mimarıdır. Flutter ile geliştirdiği modern SaaS arayüzünü, n8n otomasyonları ve ölçeklenebilir bir veritabanı altyapısıyla birleştirerek platformun tüm dijital temelini kurmuştur.</p>
+            <h2 class="section-title">Destek ve <span class="gradient-text">İletişim</span></h2>
+            <div class="glass-card full-width">
+                <p>Kariyer Pusulası ile ilgili her türlü soru, öneri veya teknik destek talepleriniz için bizimle iletişime geçebilirsiniz. Ekibimiz size en kısa sürede yardımcı olacaktır.</p>
+                <div style="margin-top: 1.5rem; line-height: 1.8;">
+                    <p><strong>E-posta:</strong> <a href="mailto:destek@kariyerpusulasi.com" style="color: var(--primary-color); text-decoration: none; transition: color 0.3s;">destek@kariyerpusulasi.com</a></p>
+                    <p><strong>Sosyal Medya:</strong>
+                        <a href="https://www.linkedin.com/company/kariyerpusulasi" target="_blank" style="color: var(--primary-color); text-decoration: none; transition: color 0.3s;">LinkedIn</a> |
+                        <a href="https://twitter.com/kariyerpusulasi" target="_blank" style="color: var(--primary-color); text-decoration: none; transition: color 0.3s;">Twitter</a>
+                    </p>
+                    <p><strong>Çalışma Saatleri:</strong> Hafta içi 09:00 - 18:00</p>
                 </div>
-                <div class="glass-card dev-card">
-                    <div class="dev-icon">💻</div>
-                    <h2>Baraa Alshıkh</h2>
-                    <h3 class="gradient-text">Web ve Tasarım</h3>
-                    <p>Baraa, Kariyer Pusulası'nın görsel kimliğini ve tasarım mimarisini oluşturan isimdir. Logo tasarımından web arayüzüne kadar tüm süreçleri Photoshop ve modern araçlarla yöneterek projenin estetik dilini belirlemiştir.</p>
-                </div>
-                <div class="glass-card dev-card">
-                    <div class="dev-icon">🧠</div>
-                    <h2>Talha Yılmaz</h2>
-                    <h3 class="gradient-text">Yapay Zeka Eğitimi</h3>
-                    <p>Talha, Kariyer Pusulası'nın operasyonel zekasını ve veri akışını yöneten isimdir. n8n tabanlı otomasyon altyapısını kurup yapay zeka modellerini eğiterek projenin akıllı bir ekosisteme dönüşmesine liderlik etmiştir.</p>
-                </div>
+                <p style="margin-top: 1.5rem; font-size: 0.9rem; color: rgba(255,255,255,0.6);">Geri bildirimleriniz bizim için değerlidir. Uygulamamızı daha iyi hale getirmek için lütfen düşüncelerinizi paylaşın.</p>
             </div>
         </div>
     </section>
