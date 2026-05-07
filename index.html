@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kariyer Pusulası</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* ── Auth-aware navbar additions ─────────── */
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(0,223,216,0.08);
+            border: 1px solid rgba(0,223,216,0.2);
+            border-radius: 50px;
+            padding: 0.4rem 1rem 0.4rem 0.5rem;
+            cursor: default;
+        }
+        .user-chip-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #007cf0, #00dfd8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+        .user-chip-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            max-width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Logout btn – reuses .nav-btn style but red on hover */
+        .logout-btn {
+            padding: 0.7rem 1.4rem;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: rgba(255,80,80,0.15); border-color: rgba(255,80,80,0.3); color: #ff8080; }
+
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 50px;
+            padding: 0.4rem 0.9rem;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+        .user-chip:hover {
+            transform: translateY(-1px);
+            border-color: rgba(0,223,216,0.3);
+            background: rgba(255,255,255,0.12);
+        }
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 10px);
+            min-width: 180px;
+            padding: 0.6rem 0.5rem;
+            background: rgba(5,5,16,0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(20px);
+            z-index: 1500;
+        }
+        .user-dropdown.active { display: block; }
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            color: rgba(255,255,255,0.92);
+            background: transparent;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .dropdown-item:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* Chat CTA – hero button when logged in */
+        .cta-button.chat-cta {
+            background: linear-gradient(90deg, #007cf0, #00dfd8);
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+            0%,100% { box-shadow: 0 0 20px rgba(0,124,240,0.4); }
+            50%      { box-shadow: 0 0 40px rgba(0,223,216,0.7); }
+        }
+
+        /* Welcome banner (shown when logged in, above hero) */
+        .auth-banner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(90deg, rgba(0,124,240,0.15), rgba(0,223,216,0.15));
+            border-bottom: 1px solid rgba(0,223,216,0.2);
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.7);
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+        .auth-banner.visible { display: block; }
+        .auth-banner a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
+        .auth-banner a:hover { color: white; }
+
+        /* Adjust header when banner is shown */
+        body.has-banner header { top: calc(20px + 30px); }
+        body.has-banner .mobile-menu { top: calc(90px + 30px); }
+
+        /* User chip responsive */
+        @media (max-width: 1100px) {
+            .user-chip-name { max-width: 70px; }
+        }
+
+        /* Mobile user chip in mobile menu */
+        .mob-user-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.85rem 1.2rem;
+            border-radius: 12px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+
+        /* Mobile menu buttons (reset native button styles) */
+        .mobile-menu button.mobile-nav-btn {
+            width: 100%;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding-bottom: 3px;
+            padding-top: 3px;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Auth Banner -->
+    <div class="auth-banner" id="auth-banner">
+        Hoş geldiniz! <a href="chat.html">→ Kariyer Asistanınıza gidin</a>
+    </div>
+
+    <!-- Background Elements for Glass Effect -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+    <div class="bg-shape shape-4"></div>
+    <div class="bg-shape shape-content-1"></div>
+    <div class="bg-shape shape-content-2"></div>
+
+    <!-- HEADER -->
+    <header class="glass-header">
+        <div class="logo">Kariyer Pusulası</div>
+
+        <!-- Desktop Nav -->
+        <nav>
+            <ul>
+                <li><a href="#home">Ana Sayfa</a></li>
+                <li><a href="#uygulama">Uygulama</a></li>
+                <li><a href="#kullanim">Kullanım</a></li>
+                <li><a href="#gelistiriciler">Destek - İletişim</a></li>
+
+                <!-- Giriş YOK durumu -->
+                <li id="nav-login-btn" class="nav-auth-item">
+                    <a class="nav-btn" href="login.html">Giriş Yap</a>
+                </li>
+
+                <li id="nav-chat-btn" class="nav-auth-item" style="display:none;">
+                    <a class="nav-btn" href="chat.html">Chat</a>
+                </li>
+
+                <li>
+                    <a href="kariyer_pusulasi.apk" class="nav-btn" download="KariyerPusulasi.apk">
+                        İndir
+                    </a>
+                </li>
+
+                <!-- Giriş VAR durumu (başlangıçta gizli) -->
+                <li id="nav-user-chip" class="nav-auth-item" style="display:none; position: relative;">
+                    <button class="user-chip" id="user-chip-button" aria-haspopup="true" aria-expanded="false">
+                        <div class="user-chip-avatar" id="nav-avatar">?</div>
+                        <span class="user-chip-name" id="nav-username">...</span>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown" aria-label="Kullanıcı menüsü">
+                        <button class="logout-btn dropdown-item" onclick="logout()">Çıkış Yap</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Hamburger Button (mobile only) -->
+        <button class="hamburger" id="hamburger" aria-label="Menüyü aç/kapat" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-nav-overlay" id="mobile-overlay"></div>
+    <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobil menü">
+        <a href="#home"            onclick="closeMenu()">Ana Sayfa</a>
+        <a href="#uygulama"       onclick="closeMenu()">Uygulama</a>
+        <a href="#kullanim"       onclick="closeMenu()">Kullanım</a>
+        <a href="#gelistiriciler" onclick="closeMenu()">Geliştiriciler</a>
+        <div class="mobile-menu-divider"></div>
+        <!-- Giriş yok -->
+        <button class="mobile-nav-btn" id="mob-login" onclick="closeMenu(); window.location.href='login.html';">Giriş Yap</button>
+        <!-- Giriş var -->
+        <button class="mobile-nav-btn" id="mob-chat" style="display:none;" onclick="closeMenu(); window.location.href='chat.html';">Chat</button>
+        <button class="mobile-nav-btn" id="mob-logout" style="display:none; background:rgba(255,80,80,0.2);"
+           onclick="mobileLogout();">Çıkış Yap</button>
+        <button class="mobile-nav-btn" onclick="closeMenu()">İndir</button>
+    </div>
+
+    <!-- HERO -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="glass-card hero-content-wrapper">
+                <div class="hero-text-col">
+                    <h1>Geleceğinize <span class="gradient-text">Yapay Zeka</span> ile Yön Verin</h1>
+                    <p>Kariyer Pusulası, meslek seçme sürecinde öğrencilere ve gençlere yardımcı olmak için
+                        geliştirilmiş bir uygulamadır.
+                        İlgi alanlarına, hobilerine ve hedeflerine göre sana uygun meslekleri keşfetmeni sağlar.</p>
+                    <div class="cta-group">
+                        <!-- Giriş yok: login'e götür -->
+                        <a href="login.html" class="cta-button" id="hero-cta-login">Hemen Keşfet</a>
+                        <!-- Giriş var: chat'e götür -->
+                        <a href="chat.html" class="cta-button chat-cta" id="hero-cta-chat" style="display:none;">
+                            💬 Chat
+                        </a>
+                    </div>
+                </div>
+
+                <div class="hero-image-col">
+                    <div class="phone-mockup">
+                        <div class="phone-notch"></div>
+                        <div class="chat-interface small-chat">
+                            <div class="chat-header">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                                <span>Kariyer Asistanı</span>
+                            </div>
+                            <div class="chat-body">
+                                <div class="message user">
+                                    <p>Sayısal derslerim iyi ama sanatla da ilgileniyorum. Hangi meslek bana uygun olabilir?</p>
+                                </div>
+                                <div class="message ai">
+                                    <p>Bu harika bir kombinasyon! 🎨📐 Hem analitik zekanı hem de yaratıcılığını kullanabileceğin <strong>Mimarlık</strong> veya <strong>Endüstriyel Tasarım</strong> alanlarını düşünebilirsin.</p>
+                                </div>
+                                <div class="message user">
+                                    <p>Endüstriyel tasarım kulağa hoş geliyor. Geleceği nasıl?</p>
+                                </div>
+                                <div class="message ai">
+                                    <p>Oldukça açık! 🚀 Teknolojiyle birleşen ürün tasarımı alanı hızla büyüyor. Senin için detaylı bir rapor hazırlayayım mı?</p>
+                                </div>
+                                <div class="typing-indicator">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="chat-input-area">
+                                <div class="fake-input">Analiz et...</div>
+                                <div class="send-btn">➤</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="uygulama" class="content-section">
+        <div class="container">
+            <h2 class="section-title">Kariyer <span class="gradient-text">Pusulası</span> Nedir<span class="gradient-text">?</span></h2>
+            <div class="glass-card full-width">
+                <p>Her öğrencinin karşılaştığı <strong>"Hangi meslek bana uygun?"</strong> yol ayrımını netleştirmek için buradayız.
+                    KariyerPusulası, hem kariyer planlaması yapan gençlere hem de eğitimine devam eden öğrencilere,
+                    potansiyellerini en doğru şekilde yönlendirmeleri için rehberlik eden yapay zeka destekli yenilikçi bir platformdur.</p>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <h3>🎯 Hedef Belirleme</h3>
+                        <p>Öğrencilerin en kritik yol ayrımlarında, yetenek ve ilgi farkındalığıyla potansiyel israfını önleyen; tamamen kişiye özel bir kariyer rehberliği.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>🎨 Hobi ve Yetenek Keşfi</h3>
+                        <p>Sesli veya yazılı etkileşime giren yapay zeka asistanımız; kişilik özelliklerinizi derinlemesine analiz ederek size özel bir keşif deneyimi sunar.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>🧩 Sorun Analizi ve Raporlar</h3>
+                        <p>NLP teknolojisiyle sorunlarınızı derinlemesine analiz eder ve anında, tamamen kişiselleştirilmiş çözüm raporları sunar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="kullanim" class="content-section">
+        <div class="container">
+            <h2 class="section-title">Nasıl Kullanılır?</h2>
+            <div class="chat-interface glass-card">
+                <div class="chat-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span>Kariyer Asistanı</span>
+                </div>
+                <div class="chat-body">
+                    <div class="message ai">
+                        <p>Merhaba! Bugün kariyer yolculuğunda sana nasıl yardımcı olabilirim? Hangi konulara ilgi duyuyorsun?</p>
+                    </div>
+                    <div class="message user">
+                        <p>Yazılım ve tasarıma ilgim var ama hangisine odaklanmalıyım bilmiyorum.</p>
+                    </div>
+                    <div class="message ai">
+                        <p>Harika alanlar! Senin için ikisini birleştiren bir analiz yapabilirim. Görsel zekan mı daha baskın yoksa mantıksal problem çözme yeteneğin mi?</p>
+                    </div>
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="fake-input">Buraya yazın...</div>
+                    <div class="send-btn">➤</div>
+                </div>
+            </div>
+            <p class="section-caption">Sanki bir arkadaşınızla konuşur gibi, doğal ve akıcı bir deneyim.</p>
+        </div>
+    </section>
+
+    <section id="gelistiriciler" class="content-section">
+        <div class="container">
+            <h2 class="section-title">Geliştirici Ekibimiz</h2>
+            <div class="developers-grid">
+                <div class="glass-card dev-card">
+                    <div class="dev-icon">📱</div>
+                    <h2>Burak Yazıcı</h2>
+                    <h3 class="gradient-text">Uygulama Geliştiricisi</h3>
+                    <p>Burak, Kariyer Pusulası'nın teknik mimarıdır. Flutter ile geliştirdiği modern SaaS arayüzünü, n8n otomasyonları ve ölçeklenebilir bir veritabanı altyapısıyla birleştirerek platformun tüm dijital temelini kurmuştur.</p>
+                </div>
+                <div class="glass-card dev-card">
+                    <div class="dev-icon">💻</div>
+                    <h2>Baraa Alshıkh</h2>
+                    <h3 class="gradient-text">Web ve Tasarım</h3>
+                    <p>Baraa, Kariyer Pusulası'nın görsel kimliğini ve tasarım mimarisini oluşturan isimdir. Logo tasarımından web arayüzüne kadar tüm süreçleri Photoshop ve modern araçlarla yöneterek projenin estetik dilini belirlemiştir.</p>
+                </div>
+                <div class="glass-card dev-card">
+                    <div class="dev-icon">🧠</div>
+                    <h2>Talha Yılmaz</h2>
+                    <h3 class="gradient-text">Yapay Zeka Eğitimi</h3>
+                    <p>Talha, Kariyer Pusulası'nın operasyonel zekasını ve veri akışını yöneten isimdir. n8n tabanlı otomasyon altyapısını kurup yapay zeka modellerini eğiterek projenin akıllı bir ekosisteme dönüşmesine liderlik etmiştir.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 KariyerPusulası. Tüm Hakları Saklıdır.</p>
+    </footer>
+
+    <script>
+        
+        const SUPABASE_URL  = 'https://ixtgaxbtgjhvabffklqz.supabase.co';  // ← değiştir
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4dGdheGJ0Z2podmFiZmZrbHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1ODM0NDgsImV4cCI6MjA5MjE1OTQ0OH0.wuu7eppwQJXyEqtl42kDa65LcBgJE0xJgEK1fPV9oAo';                   // ← değiştir
+
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // ── Auth UI ──────────────
+        async function checkAuth() {
+            const { data: { session } } = await sb.auth.getSession();
+
+            if (session) {
+                const user = session.user;
+                const meta = user.user_metadata || {};
+                const name = meta.full_name || meta.name || user.email.split('@')[0];
+                const initials = name.charAt(0).toUpperCase();
+
+                // Navbar
+                document.getElementById('nav-login-btn').style.display  = 'none';
+                document.getElementById('nav-user-chip').style.display  = 'list-item';
+                document.getElementById('nav-chat-btn').style.display   = 'list-item';
+                document.getElementById('nav-avatar').textContent   = initials;
+                document.getElementById('nav-username').textContent  = name;
+
+                // Mobile menu
+                document.getElementById('mob-login').style.display  = 'none';
+                document.getElementById('mob-chat').style.display   = 'block';
+                document.getElementById('mob-logout').style.display = 'block';
+
+                // Hero CTA
+                document.getElementById('hero-cta-login').style.display = 'none';
+                document.getElementById('hero-cta-chat').style.display  = 'inline-block';
+
+                // Banner
+                document.getElementById('auth-banner').classList.add('visible');
+                document.body.classList.add('has-banner');
+            }
+        }
+
+        async function logout() {
+            try {
+                await sb.auth.signOut();
+            } catch(e) {}
+            window.location.href = window.location.pathname;
+        }
+
+        async function mobileLogout() {
+            closeMenu();
+            try {
+                await sb.auth.signOut();
+            } catch(e) {}
+            window.location.href = window.location.pathname;
+        }
+
+        function setupUserDropdown() {
+            const button = document.getElementById('user-chip-button');
+            const dropdown = document.getElementById('user-dropdown');
+            if (!button || !dropdown) return;
+
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const opened = dropdown.classList.toggle('active');
+                button.setAttribute('aria-expanded', opened ? 'true' : 'false');
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!document.getElementById('nav-user-chip').contains(event.target)) {
+                    dropdown.classList.remove('active');
+                    button.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    dropdown.classList.remove('active');
+                    button.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        checkAuth();
+        setupUserDropdown();
+
+        // ── Mobile Menu ──────────────────────────────
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const overlay    = document.getElementById('mobile-overlay');
+
+        function openMenu() {
+            hamburger.classList.add('open');
+            hamburger.setAttribute('aria-expanded', 'true');
+            mobileMenu.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+            hamburger.classList.remove('open');
+            hamburger.setAttribute('aria-expanded', 'false');
+            mobileMenu.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        hamburger.addEventListener('click', () => mobileMenu.classList.contains('active') ? closeMenu() : openMenu());
+        overlay.addEventListener('click', closeMenu);
+        window.addEventListener('resize', () => { if (window.innerWidth > 768) closeMenu(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+    </script>
+</body>
+</html>

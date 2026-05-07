@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kariyer Asistanı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #00dfd8;
+            --secondary: #007cf0;
+            --bg: #050510;
+            --sidebar-bg: rgba(10, 10, 25, 0.95);
+            --glass: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --text: #ffffff;
+            --text-muted: rgba(255,255,255,0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ── SIDEBAR ─────────────────────────────── */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.2rem;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 100;
+        }
+
+        .sidebar-logo {
+            font-size: 1.15rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, white 0%, var(--primary) 50%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding: 0.5rem 0.8rem 1rem;
+            letter-spacing: -0.5px;
+        }
+
+        .new-chat-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0,124,240,0.3);
+            margin-bottom: 0.5rem;
+        }
+        .new-chat-btn:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(0,223,216,0.5); }
+
+        .sidebar-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 0.5rem 0.8rem 0.3rem;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .chat-history::-webkit-scrollbar { width: 4px; }
+        .chat-history::-webkit-scrollbar-track { background: transparent; }
+        .chat-history::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .history-item {
+            padding: 0.65rem 0.9rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border: 1px solid transparent;
+        }
+        .history-item:hover { background: rgba(255,255,255,0.05); color: white; border-color: var(--border); }
+        .history-item.active { background: rgba(0,223,216,0.08); color: white; border-color: rgba(0,223,216,0.2); }
+
+        .sidebar-bottom {
+            border-top: 1px solid var(--border);
+            padding-top: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.7rem 0.8rem;
+            border-radius: 10px;
+            transition: background 0.2s;
+            cursor: default;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .user-name { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-email { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .sidebar-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.65rem 0.9rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.2s;
+            text-decoration: none;
+            width: 100%;
+        }
+        .sidebar-action-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-action-btn.logout:hover { background: rgba(255,80,80,0.1); color: #ff8080; }
+
+        /* ── MAIN AREA ───────────────────────────── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Background glow */
+        .main::before {
+            content: '';
+            position: absolute;
+            top: -200px; left: 50%;
+            transform: translateX(-50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(0,124,240,0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── TOPBAR ──────────────────────────────── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5,5,16,0.8);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0.3rem;
+        }
+
+        .model-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .model-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 6px var(--primary); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .topbar-right { display: flex; align-items: center; gap: 0.8rem; }
+
+        .home-link {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+        }
+        .home-link:hover { color: white; background: rgba(255,255,255,0.05); }
+
+        /* ── MESSAGES AREA ───────────────────────── */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .messages-area::-webkit-scrollbar { width: 6px; }
+        .messages-area::-webkit-scrollbar-track { background: transparent; }
+        .messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
+
+        /* Welcome screen */
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 3rem 1rem;
+            gap: 1.5rem;
+        }
+        .welcome-icon { font-size: 4rem; margin-bottom: 0.5rem; }
+        .welcome-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, white, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-sub { color: var(--text-muted); font-size: 1rem; max-width: 400px; line-height: 1.6; }
+
+        .starter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            max-width: 550px;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .starter-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: left;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.4;
+        }
+        .starter-card:hover { background: rgba(0,223,216,0.07); border-color: rgba(0,223,216,0.25); color: white; transform: translateY(-2px); }
+        .starter-card .starter-icon { font-size: 1.1rem; margin-bottom: 0.4rem; display: block; }
+
+        /* Message rows */
+        .msg-row {
+            display: flex;
+            gap: 1rem;
+            max-width: 780px;
+            margin: 0 auto;
+            width: 100%;
+            animation: msgIn 0.3s ease;
+        }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .msg-row.user { flex-direction: row-reverse; }
+
+        .msg-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .msg-row.ai .msg-avatar { background: linear-gradient(135deg, var(--secondary), var(--primary)); }
+        .msg-row.user .msg-avatar { background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
+
+        .msg-bubble {
+            padding: 0.9rem 1.2rem;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.65;
+            max-width: calc(100% - 50px);
+        }
+        .msg-row.ai .msg-bubble {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 4px 16px 16px 16px;
+            color: rgba(255,255,255,0.92);
+        }
+        .msg-row.user .msg-bubble {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            border-radius: 16px 4px 16px 16px;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* Typing indicator */
+        .typing-bubble {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 4px 16px 16px 16px;
+            padding: 1rem 1.2rem;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .typing-bubble span {
+            width: 7px; height: 7px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+        .typing-bubble span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-bubble span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typingBounce { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+        /* ── INPUT AREA ──────────────────────────── */
+        .input-section {
+            padding: 1rem 1.5rem 1.5rem;
+            background: rgba(5,5,16,0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            max-width: 780px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-end;
+            gap: 0.8rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px;
+            padding: 0.8rem 0.8rem 0.8rem 1.2rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-wrapper:focus-within {
+            border-color: rgba(0,223,216,0.4);
+            box-shadow: 0 0 0 3px rgba(0,223,216,0.08);
+        }
+
+        .chat-textarea {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            resize: none;
+            outline: none;
+            min-height: 24px;
+            max-height: 160px;
+            line-height: 1.5;
+        }
+        .chat-textarea::placeholder { color: rgba(255,255,255,0.25); }
+
+        .send-btn {
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0,124,240,0.4);
+        }
+        .send-btn:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(0,223,216,0.6); }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .input-footer {
+            max-width: 780px;
+            margin: 0.5rem auto 0;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.25);
+        }
+
+        /* ── MOBILE OVERLAY ──────────────────────── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 99;
+            backdrop-filter: blur(2px);
+        }
+
+        /* ── RESPONSIVE ──────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0; left: 0;
+                height: 100%;
+                transform: translateX(-100%);
+                z-index: 200;
+            }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay { display: block; }
+            .hamburger-btn { display: block; }
+            .starter-grid { grid-template-columns: 1fr; }
+            .welcome-title { font-size: 1.5rem; }
+            .messages-area { padding: 1.2rem 0.7rem; }
+            .input-section { padding: 0.8rem 0.8rem 1rem; }
+            .msg-row { max-width: 100%; }
+            .topbar { padding: 0.8rem 1rem; }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar { width: 240px; }
+            .welcome-icon { font-size: 3rem; }
+            .welcome-title { font-size: 1.3rem; }
+            .welcome-sub { font-size: 0.88rem; }
+            .starter-card { padding: 0.8rem 1rem; font-size: 0.82rem; }
+            .msg-bubble { font-size: 0.88rem; padding: 0.75rem 1rem; }
+            .input-wrapper { padding: 0.65rem 0.65rem 0.65rem 1rem; }
+            .chat-textarea { font-size: 0.9rem; }
+            .model-badge { font-size: 0.78rem; padding: 0.3rem 0.8rem; }
+            .home-link { font-size: 0.78rem; padding: 0.3rem 0.5rem; }
+            .send-btn { width: 34px; height: 34px; font-size: 0.9rem; }
+        }
+
+        @media (max-width: 360px) {
+            .sidebar { width: 220px; }
+            .topbar { padding: 0.7rem 0.8rem; }
+            .welcome-title { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- ── SIDEBAR ────────────────────────── -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-logo">Kariyer Pusulası</div>
+
+        <button class="new-chat-btn" onclick="newChat()">
+            ✏️ Yeni Sohbet
+        </button>
+
+        <div class="sidebar-section-title">Son Sohbetler</div>
+        <div class="chat-history" id="chat-history">
+            <!-- Dinamik olarak doldurulur -->
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">?</div>
+                <div>
+                    <div class="user-name" id="user-name">Yükleniyor...</div>
+                    <div class="user-email" id="user-email"></div>
+                </div>
+            </div>
+            <a href="index.html" class="sidebar-action-btn">🏠 Ana Sayfa</a>
+            <button class="sidebar-action-btn logout" onclick="logout()">🚪 Çıkış Yap</button>
+        </div>
+    </div>
+
+    <!-- ── MAIN ───────────────────────────── -->
+    <div class="main">
+        <!-- Topbar -->
+        <div class="topbar">
+            <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+            <div class="model-badge">
+                <div class="model-dot"></div>
+                Kariyer Asistanı
+            </div>
+            <div class="topbar-right">
+                <a href="index.html" class="home-link">← Ana Sayfa</a>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="messages-area" id="messages-area">
+            <div class="welcome-screen" id="welcome-screen">
+                <div class="welcome-icon">🧭</div>
+                <h1 class="welcome-title">Kariyer Asistanınız</h1>
+                <p class="welcome-sub">İlgi alanlarını, yeteneklerini ve hedeflerini anlat. Sana özel kariyer yolunu birlikte keşfedelim.</p>
+                <div class="starter-grid">
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="Sayısal derslerim iyi ama aynı zamanda sanata da ilgi duyuyorum. Hangi meslek bana uygun olabilir?">
+                        <span class="starter-icon">🎨</span>
+                        Sanat ve matematik bir arada kariyer
+                    </div>
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="Yazılım mühendisliği mi yoksa endüstriyel tasarım mı seçmeliyim? İkisini karşılaştır.">
+                        <span class="starter-icon">💻</span>
+                        Yazılım mı, tasarım mı?
+                    </div>
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="10 yıl sonra en çok ihtiyaç duyulacak meslekler hangileri olacak?">
+                        <span class="starter-icon">🚀</span>
+                        Geleceğin meslekleri
+                    </div>
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="Hobim oyun oynamak ve müzik dinlemek. Bu hobilerimle ilgili kariyer seçenekleri neler olabilir?">
+                        <span class="starter-icon">🎮</span>
+                        Hobime uygun kariyer
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="input-section">
+            <div class="input-wrapper">
+                <textarea
+                    class="chat-textarea"
+                    id="chat-input"
+                    placeholder="Kariyer hedeflerinizi veya sorularınızı yazın..."
+                    rows="1"
+                    onkeydown="handleKeydown(event)"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+            <div class="input-footer">Kariyer Pusulası · Yapay zeka destekli rehberlik</div>
+        </div>
+    </div>
+
+    <script>
+        
+        const SUPABASE_URL  = 'https://ixtgaxbtgjhvabffklqz.supabase.co/';  
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4dGdheGJ0Z2podmFiZmZrbHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1ODM0NDgsImV4cCI6MjA5MjE1OTQ0OH0.wuu7eppwQJXyEqtl42kDa65LcBgJE0xJgEK1fPV9oAo';                   // ← değiştir
+
+        
+        const N8N_WEBHOOK_URL = 'https://n8n.kariyerpusulasi.xyz/webhook/kariyer-chat'; 
+
+        
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        let currentUser = null;
+        let messages    = [];          
+        let currentSessionId = null;
+        let isStreaming = false;
+
+        // ── Auth Guard ──────────────────────────────
+        async function init() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentUser = session.user;
+            updateUserUI(currentUser);
+            loadChatHistory();
+        }
+
+        function updateUserUI(user) {
+            const meta = user.user_metadata || {};
+            const name = meta.full_name || meta.name || user.email.split('@')[0];
+            const initials = name.charAt(0).toUpperCase();
+
+            document.getElementById('user-avatar').textContent = initials;
+            document.getElementById('user-name').textContent   = name;
+            document.getElementById('user-email').textContent  = user.email;
+        }
+
+        async function logout() {
+            await sb.auth.signOut();
+            window.location.href = 'index.html';
+        }
+
+        // ── Session / History ───────────────────────
+        function loadChatHistory() {
+            const saved = localStorage.getItem('kariyer_sessions_' + currentUser.id);
+            chatSessions = saved ? JSON.parse(saved) : [];
+            renderHistory();
+        }
+
+        function saveSession() {
+            if (!currentSessionId || messages.length === 0) return;
+            const firstMsg = messages.find(m => m.role === 'user');
+            const title    = firstMsg ? firstMsg.content.slice(0, 45) + (firstMsg.content.length > 45 ? '…' : '') : 'Yeni Sohbet';
+
+            const idx = chatSessions.findIndex(s => s.id === currentSessionId);
+            const session = { id: currentSessionId, title, messages, timestamp: Date.now() };
+            if (idx >= 0) { chatSessions[idx] = session; } else { chatSessions.unshift(session); }
+
+            if (chatSessions.length > 30) chatSessions = chatSessions.slice(0, 30);
+            localStorage.setItem('kariyer_sessions_' + currentUser.id, JSON.stringify(chatSessions));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('chat-history');
+            if (chatSessions.length === 0) {
+                container.innerHTML = '<div style="padding:0.5rem 0.8rem;font-size:0.8rem;color:rgba(255,255,255,0.25);">Henüz sohbet yok</div>';
+                return;
+            }
+            container.innerHTML = chatSessions.map(s => `
+                <div class="history-item ${s.id === currentSessionId ? 'active' : ''}"
+                     onclick="loadSession('${s.id}')" title="${s.title}">
+                    💬 ${s.title}
+                </div>
+            `).join('');
+        }
+
+        function loadSession(id) {
+            const session = chatSessions.find(s => s.id === id);
+            if (!session) return;
+            currentSessionId = id;
+            messages = session.messages;
+            renderMessages();
+            renderHistory();
+            closeSidebar();
+        }
+
+        function newChat() {
+            currentSessionId = 'session_' + Date.now();
+            messages = [];
+            document.getElementById('messages-area').innerHTML = '';
+            document.getElementById('messages-area').appendChild(createWelcomeScreen());
+            renderHistory();
+            closeSidebar();
+        }
+
+        function createWelcomeScreen() {
+            const div = document.createElement('div');
+            div.className = 'welcome-screen';
+            div.id = 'welcome-screen';
+            div.innerHTML = `
+                <div class="welcome-icon">🧭</div>
+                <h1 class="welcome-title">Kariyer Asistanınız</h1>
+                <p class="welcome-sub">İlgi alanlarını, yeteneklerini ve hedeflerini anlat. Sana özel kariyer yolunu birlikte keşfedelim.</p>
+                <div class="starter-grid">
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="Sayısal derslerim iyi ama aynı zamanda sanata da ilgi duyuyorum. Hangi meslek bana uygun olabilir?">
+                        <span class="starter-icon">🎨</span>Sanat ve matematik bir arada kariyer</div>
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="Yazılım mühendisliği mi yoksa endüstriyel tasarım mı seçmeliyim? İkisini karşılaştır.">
+                        <span class="starter-icon">💻</span>Yazılım mı, tasarım mı?</div>
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="10 yıl sonra en çok ihtiyaç duyulacak meslekler hangileri olacak?">
+                        <span class="starter-icon">🚀</span>Geleceğin meslekleri</div>
+                    <div class="starter-card" onclick="sendStarter(this.dataset.msg)" data-msg="Hobim oyun oynamak ve müzik dinlemek. Bu hobilerimle ilgili kariyer seçenekleri neler olabilir?">
+                        <span class="starter-icon">🎮</span>Hobime uygun kariyer</div>
+                </div>`;
+            return div;
+        }
+
+        // ── Render messages ─────────────────────────
+        function renderMessages() {
+            const area = document.getElementById('messages-area');
+            area.innerHTML = '';
+            messages.forEach(m => appendMessageDOM(m.role, m.content));
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function appendMessageDOM(role, content) {
+            const area = document.getElementById('messages-area');
+            const ws = document.getElementById('welcome-screen');
+            if (ws) ws.remove();
+
+            const row = document.createElement('div');
+            row.className = 'msg-row ' + role;
+
+            const meta = currentUser?.user_metadata || {};
+            const name = meta.full_name || meta.name || (currentUser?.email || '?').charAt(0).toUpperCase();
+            const avatarText = role === 'ai' ? '🧭' : name.charAt(0).toUpperCase();
+
+            row.innerHTML = `
+                <div class="msg-avatar">${avatarText}</div>
+                <div class="msg-bubble">${escapeHtml(content)}</div>
+            `;
+            area.appendChild(row);
+            area.scrollTop = area.scrollHeight;
+            return row;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        }
+
+        // ── Typing indicator ────────────────────────
+        function showTyping() {
+            const area = document.getElementById('messages-area');
+            const row  = document.createElement('div');
+            row.className = 'msg-row ai';
+            row.id = 'typing-row';
+            row.innerHTML = `
+                <div class="msg-avatar">🧭</div>
+                <div class="typing-bubble"><span></span><span></span><span></span></div>
+            `;
+            area.appendChild(row);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function hideTyping() {
+            const t = document.getElementById('typing-row');
+            if (t) t.remove();
+        }
+
+        // ── Send message ────────────────────────────
+       async function sendMessage() {
+    const textarea = document.getElementById('chat-input');
+    const text     = textarea.value.trim();
+    if (!text || isStreaming) return;
+
+    if (!currentSessionId) currentSessionId = 'session_' + Date.now();
+
+    // Kullanıcı mesajını ekle
+    messages.push({ role: 'user', content: text });
+    appendMessageDOM('user', text);
+
+    textarea.value = '';
+    textarea.style.height = 'auto';
+    isStreaming = true;
+    document.getElementById('send-btn').disabled = true;
+
+    showTyping();
+
+    try {
+        const response = await fetch(N8N_WEBHOOK_URL, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: text,
+                userId: currentUser.id,
+                userEmail: currentUser.email,
+                sessionId: currentSessionId,
+                source: 'web_site', 
+                history: messages.slice(-10) 
+            })
+        });
+
+        hideTyping();
+
+        if (!response.ok) throw new Error('n8n hatası: ' + response.status);
+
+        // ÖNEMLİ: Yanıtı önce metin (text) olarak alıyoruz
+        const responseText = await response.text(); 
+        let aiText = '';
+
+        try {
+            // Eğer yanıt JSON formatındaysa ayrıştır
+            const data = JSON.parse(responseText);
+            aiText = data.output || data.response || data.text || data.message || 
+                     (Array.isArray(data) ? data[0].output : JSON.stringify(data));
+        } catch (e) {
+            // Eğer JSON değilse (düz metinse), gelen metni direkt kullan
+            aiText = responseText;
+        }
+
+        messages.push({ role: 'ai', content: aiText });
+        appendMessageDOM('ai', aiText);
+        saveSession();
+
+    } catch (err) {
+        hideTyping();
+        console.error("Detaylı Hata:", err);
+        const errMsg = '⚠️ Bağlantı hatası. n8n workflow\'unuzun "Active" olduğundan emin olun.\n\nHata: ' + err.message;
+        messages.push({ role: 'ai', content: errMsg });
+        appendMessageDOM('ai', errMsg);
+    }
+
+    isStreaming = false;
+    document.getElementById('send-btn').disabled = false;
+}
+
+        function sendStarter(msg) {
+            document.getElementById('chat-input').value = msg;
+            sendMessage();
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+        }
+
+        // ── Sidebar mobile ──────────────────────────
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').style.display =
+                document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').style.display = 'none';
+        }
+
+        // ── Boot ─────────────────────────────────────
+        init();
+    </script>
+</body>
+</html>
