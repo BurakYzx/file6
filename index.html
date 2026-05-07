@@ -176,6 +176,38 @@
             -webkit-appearance: none;
             appearance: none;
         }
+
+        /* ── Contact Form Styles ────────────────── */
+        .contact-form .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .contact-form .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.9rem 1.1rem;
+            color: white;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .contact-form .form-input:focus {
+            border-color: var(--primary-color);
+            background: rgba(0, 223, 216, 0.06);
+            box-shadow: 0 0 0 3px rgba(0, 223, 216, 0.12);
+        }
+        .contact-form textarea.form-input {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .contact-form .cta-button {
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -376,15 +408,21 @@
         <div class="container">
             <h2 class="section-title">Destek ve <span class="gradient-text">İletişim</span></h2>
             <div class="glass-card full-width">
-                <p>Kariyer Pusulası ile ilgili her türlü soru, öneri veya teknik destek talepleriniz için bizimle iletişime geçebilirsiniz. Ekibimiz size en kısa sürede yardımcı olacaktır.</p>
-                <div style="margin-top: 1.5rem; line-height: 1.8;">
-                    <p><strong>E-posta:</strong> <a href="mailto:destek@kariyerpusulasi.com" style="color: var(--primary-color); text-decoration: none; transition: color 0.3s;">destek@kariyerpusulasi.com</a></p>
-                    <p><strong>Sosyal Medya:</strong>
-                        <a href="https://www.linkedin.com/company/kariyerpusulasi" target="_blank" style="color: var(--primary-color); text-decoration: none; transition: color 0.3s;">LinkedIn</a> |
-                        <a href="https://twitter.com/kariyerpusulasi" target="_blank" style="color: var(--primary-color); text-decoration: none; transition: color 0.3s;">Twitter</a>
-                    </p>
-                    <p><strong>Çalışma Saatleri:</strong> Hafta içi 09:00 - 18:00</p>
-                </div>
+                <p>Kariyer Pusulası ile ilgili her türlü soru, öneri veya teknik destek talepleriniz için bize mesaj gönderin. Ekibimiz size en kısa sürede geri dönüş yapacaktır.</p>
+                
+                <form id="contact-form" class="contact-form" style="margin-top: 2rem;">
+                    <div class="form-group">
+                        <input type="text" id="contact-name" class="form-input" placeholder="Adınız Soyadınız" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="contact-email" class="form-input" placeholder="E-posta Adresiniz" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="contact-message" class="form-input" placeholder="Mesajınız..." required></textarea>
+                    </div>
+                    <button type="submit" class="cta-button">Mesajı Gönder</button>
+                </form>
+
                 <p style="margin-top: 1.5rem; font-size: 0.9rem; color: rgba(255,255,255,0.6);">Geri bildirimleriniz bizim için değerlidir. Uygulamamızı daha iyi hale getirmek için lütfen düşüncelerinizi paylaşın.</p>
             </div>
         </div>
@@ -503,6 +541,26 @@
         overlay.addEventListener('click', closeMenu);
         window.addEventListener('resize', () => { if (window.innerWidth > 768) closeMenu(); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+
+        // ── Contact Form Handling ──────────────────
+        document.getElementById('contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('contact-name').value;
+            const email = document.getElementById('contact-email').value;
+            const message = document.getElementById('contact-message').value;
+            
+            const recipient = "destek@kariyerpusulasi.com";
+            const subject = encodeURIComponent("Kariyer Pusulası Destek Talebi: " + name);
+            const body = encodeURIComponent("Gönderen: " + name + "\nE-posta: " + email + "\n\nMesaj:\n" + message);
+            
+            // Mailto linkini oluştur ve tetikle
+            window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
+            
+            // Kullanıcıya bilgi ver ve formu temizle
+            alert("Teşekkürler! Mesajınız hazırlandı ve e-posta uygulamanıza yönlendirildi. Lütfen e-posta istemcinizden 'Gönder' butonuna basmayı unutmayın.");
+            this.reset();
+        });
     </script>
 </body>
 </html>
