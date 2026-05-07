@@ -295,8 +295,8 @@
 
     <script>
        
-        const SUPABASE_URL  = 'https://ixtgaxbtgjhvabffklqz.supabase.co/'; 
-        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4dGdheGJ0Z2podmFiZmZrbHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1ODM0NDgsImV4cCI6MjA5MjE1OTQ0OH0.wuu7eppwQJXyEqtl42kDa65LcBgJE0xJgEK1fPV9oAo';
+        const SUPABASE_URL  = process.env.supabase_url;
+        const SUPABASE_ANON = process.env.supabase_anon_key;
 
         const { createClient } = supabase;
         const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
